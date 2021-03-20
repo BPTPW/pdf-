@@ -1,0 +1,331 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>PDF转图片 by BPTPW</title>
+<script src="https://y.bptpw.cn:8080/js/ajax.js"></script>
+<script>
+    var link = '';
+    var fileName;
+    var atime = 0.1;
+    var over = false;
+    window.onload = function(){
+        document.body.style.backgroundColor = 'rgb('+randomNum(200,255)+','+randomNum(210,255)+','+randomNum(210,255)+')';
+        
+        var ajax = ajaxFunction();
+        ajax.open('get','/atime');
+        ajax.onload = function(){
+            if(ajax.responseType == 200) atime = ajax.responseText;
+        }
+        ajax.send();
+    }
+    function Start(){
+        over = false;
+        var type;
+        var dpi = document.getElementById('dpi').value;
+        for(let i=0;i<=6;i++){
+            if(document.getElementById('type_'+i).checked == true){
+                type = i+1;
+                break;
+            }
+        }
+        var setAj = ajaxFunction();
+        setAj.open('post','/set');
+        setAj.send('type=' + type + '&dpi=' + dpi);
+        
+        
+        var file = document.getElementById('file').files[0];
+        fileName = document.getElementById('file').files[0].name;
+        var formdata = new FormData();
+        formdata.append("file",file);
+        var ajax = ajaxFunction();
+        ajax.open('post','/conversion');
+        
+        document.getElementById('title').style.display = 'none';
+        document.getElementById('upText').innerHTML = '上传中...';
+        document.getElementById('upDiv').style.display = 'block';
+        document.getElementById('download').style.display = 'none';
+        document.getElementById('success').style.display = 'none';
+        document.getElementById('err').style.display = 'none';
+        
+        document.getElementById('start').disabled = true;
+        ajax.upload.onprogress = function (event) {
+            if(event.lengthComputable){
+                document.getElementById('upMeter').value = event.loaded/event.total*90/100;
+                var percent = event.loaded/event.total *90;
+                document.getElementById('upPercent').innerHTML = percent.toFixed(0) + '%';
+                console.log(percent);
+                if(event.loaded/event.total == 1){
+                    document.getElementById('upMeter').value = 0.9;
+                    document.getElementById('upText').innerHTML = '转换中...';
+                    MeterPlas();
+                }
+            }
+        }
+        ajax.onload = function(){
+            over = true;
+            console.log(ajax.responseText);
+            document.getElementById('title').style.display = 'block';
+            document.getElementById('upDiv').style.display = 'none';
+            document.getElementById('start').disabled = false;
+            if(ajax.status == 200){
+                link = ajax.responseText.split(' ')[1];
+                document.getElementById('download').style.display = 'block';
+                document.getElementById('success').style.display = 'block';
+            }else{
+                document.getElementById('err').innerHTML = ajax.responseText;
+                document.getElementById('err').style.display = 'block';
+            }
+        }
+        ajax.send(formdata);
+    }
+    
+    function MeterPlas(){
+        if(document.getElementById('upMeter').value < 0.99 && over == false){
+            document.getElementById('upMeter').value = document.getElementById('upMeter').value + 0.01
+            document.getElementById('upPercent').innerHTML = (document.getElementById('upMeter').value*100).toFixed(0) + '%';
+            setTimeout(MeterPlas , (atime*document.getElementById('file').files[0].size)/180);
+        }
+    }
+    function fileChange(){
+        document.getElementById('fileErr').style.display = 'none';
+        
+        var name = document.getElementById('file').files[0].name;
+        
+        if(name.substring(name.length-4,name.length) == '.pdf'){
+            document.getElementById('fileP').innerHTML = name;
+        }else{
+            document.getElementById('fileErr').style.display = 'block';
+            Remove();
+        }
+        var size = document.getElementById('file').files[0].size;
+        console.log(size)
+        if(size>10485760){
+            document.getElementById('sizeErr').style.display = 'block';
+            Remove();
+        }else{
+            document.getElementById('sizeErr').style.display = 'none';
+        }
+        
+    }
+    
+    function Remove(){
+        document.getElementById("file").value = '';
+        document.getElementById('fileP').innerHTML = '没有文件';
+    }
+    function Open(){
+        document.getElementById('file').click();
+    }
+    function Download(){
+        window.open('getfile?n=' + link);
+    }
+    function fileOver(){
+        document.getElementById('upTextDiv').style.border = 'dotted #2E44FF';
+    }
+    function fileOut(){
+        document.getElementById('upTextDiv').style.border = 'dotted gray';
+    }
+    function dpiChange(){
+        let dpi = document.getElementById('dpi').value;
+        if(dpi > 500){
+            document.getElementById('dpi').value = 100;
+        }
+    }
+    function randomNum(minNum,maxNum){ 
+        switch(arguments.length){ 
+            case 1: 
+                return parseInt(Math.random()*minNum+1,10); 
+            break; 
+            case 2: 
+                return parseInt(Math.random()*(maxNum-minNum+1)+minNum,10); 
+            break; 
+                default: 
+                    return 0; 
+                break; 
+        } 
+    }
+</script>
+<style>
+    body{
+        user-select: none;
+    }
+    #upMeter{
+        width: 200px;
+    }
+    #upDiv{
+        position: absolute;
+        top: 30px;
+        width: 100%;
+        display: none;
+    }
+    #downloadP{
+        display: none;
+    }
+    #start{
+        position: absolute;
+        bottom: 10px;
+        right: 10px;
+        width: 70px;
+        height: 30px;
+        background-color: #4488FF;
+        border: none;
+        border-radius: 5px;
+    }
+    #remove{
+        position: absolute;
+        bottom: 10px;
+        right: 90px;
+        width: 70px;
+        height: 30px;
+        background-color: white;
+        border: solid 1px;
+        border-radius: 5px;
+    }
+    #open{
+        position: absolute;
+        bottom: 10px;
+        right: 170px;
+        width: 70px;
+        height: 30px;
+        background-color: white;
+        border: solid 1px;
+        border-radius: 5px;
+    }
+    #download{
+        position: absolute;
+        bottom: 10px;
+        right: 170px;
+        width: 70px;
+        height: 30px;
+        background-color: greenyellow;
+        border: none;
+        border-radius: 5px;
+        display: none;
+    }
+    #fileErr,#err,#sizeErr{
+        display: none;
+        color: red;
+    }
+    #success{
+        color: green;
+        display: none;
+    }
+    .upDiv{
+        position: absolute;
+        width: 450px;
+        height: 440px;
+        border: none;
+        left: 50%;
+        top: 35%;
+        margin: -8% -225px;
+        border-radius: 10px;
+        background-color: rgba(255,255,255,0.50);
+        box-shadow:0px 0px 10px #666;
+    }
+    .file{
+        position: absolute;
+        opacity: 0;
+        height: 200px;
+        width: 80%;
+        top: 80px;
+        margin: 0px -40% 0px;
+        z-index: 10;
+    }
+    .upTextDiv{
+        position: relative;
+        top: 80px;
+        width: 80%;
+        height: 210px;
+        border: dotted gray;
+        border-radius: 20px;
+        z-index: 9;
+    }
+    .upTextDiv:hover, .upTextDiv:focus{
+        border: dotted #2E44FF;
+    }
+    .upText{
+        position: absolute;
+        top: 30px;
+        width: 100%;
+    }
+    .select{
+        position: absolute;
+        bottom: 50px;
+        width: 100%;
+    }
+	.title{
+		text-align: left;
+		position: absolute;
+		margin: 30px 20px;
+		font-size: 20px;
+	}
+</style>
+</head>
+<body>
+    
+    <script type="text/javascript" src="./js/canvas.js"></script>
+    <canvas height="926" width="1920" style="position: fixed; top: 0px; left: 0px; z-index: -1; opacity: 0.5;" id="c_n1"></canvas>
+
+        <div class="upDiv" align="center">
+            <input type="file" name="file" id="file" class="file" onChange="fileChange()" onMouseOver="fileOver()" onMouseOut="fileOut()">
+
+			<p class="title" id="title">PDF转图片</p>
+            <div id="upDiv">
+                <a id="upText">上传中...</a>
+                <meter value="0" id="upMeter" align="left"></meter>
+                <a id="upPercent">0%</a>
+            </div>
+
+            <div class="upTextDiv" align="center" onClick="Open()" id="upTextDiv">
+                <div class="upText" align="center">
+                    <img src="img/icon1.png" alt="文件上传">
+                    <p>
+                        <strong>请将您要转换的文件拖动到此处
+                            <br>
+                            或点击此处选择文件
+                        </strong>
+                    </p>
+                    <p id="fileP">没有文件</p>
+                    <p id="err"></p>
+                    <p id="fileErr"><strong>文件格式错误</strong></p>
+                    <p id="sizeErr"><strong>只能选择10M以下的文件</strong></p>
+                    <p id="success"><strong>转换成功</strong></p>
+                </div>
+            </div>
+
+            <div align="center" class="select">
+              <p>
+                  <label>
+                    <input type="radio" name="type" value="1" id="type_0">
+                    bmp</label>
+                  <label>
+                    <input type="radio" name="type" value="2" id="type_1" checked>
+                    jpg</label>
+                  <label>
+                    <input type="radio" name="type" value="3" id="type_2">
+                    tif</label>
+                  <label>
+                    <input type="radio" name="type" value="4" id="type_3">
+                    png</label>
+                  <label>
+                    <input type="radio" name="type" value="5" id="type_4">
+                    gif</label>
+                <label>
+                    <input type="radio" name="type" value="6" id="type_5">
+                    pcx</label>
+                <label>
+                    <input type="radio" name="type" value="7" id="type_6">
+                    tga</label>
+                </p>
+                <p>
+                    DPI(最高500)<input name="dpi" type="number" id="dpi" value="100" onChange="dpiChange()">
+                </p>
+            </div>
+            <button onClick="Download()" id="download">下载</button>
+            <button onClick="Remove()" id="remove">清除</button>
+            <button onClick="Start()" id="start">转换</button>
+        </div>
+
+</body>
+</html>
